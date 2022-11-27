@@ -118,11 +118,9 @@ const RepoCard = ({ pull }: { pull: PRByRepo }) => {
 export function RepoSelector({
   options,
   selectedRepos,
-  setSelectedRepos,
 }: {
   options: Array<string>;
   selectedRepos: Array<string>;
-  setSelectedRepos: (arg0: Array<string>) => void;
 }) {
   const [filterText, setFilterText] = useState<string>("");
   const [open, setOpen] = useState(false);
@@ -145,22 +143,9 @@ export function RepoSelector({
 
   return (
     <div>
-      {/* <div>
-        {selectedRepos.map((repo) => (
-          <span
-            className="m-1 cursor-pointer bg-white p-1 hover:bg-violet-100"
-            key={repo}
-            onClick={(e) =>
-              setSelectedRepos(selectedRepos.filter((r) => r !== repo))
-            }
-          >
-            {repo}
-          </span>
-        ))}
-      </div> */}
       <div>
         <input
-          className="w-80 p-1"
+          className="w-80 px-1"
           placeholder="Search repos..."
           type={"text"}
           value={filterText}
@@ -170,12 +155,12 @@ export function RepoSelector({
       </div>
       {open && (
         <div
-          className="fixed top-0 left-0 h-full w-full"
+          className="fixed top-0 left-0 z-10 h-full w-full"
           onClick={(e) => setOpen(false)}
         ></div>
       )}
       {open && (
-        <div className="fixed z-10 h-80 w-80 overflow-scroll bg-violet-100">
+        <div className="fixed z-20 h-80 w-80 overflow-scroll bg-violet-100">
           {opts.map((opt) => (
             <span
               className="m-1 block cursor-pointer bg-white p-1 hover:bg-violet-100"
@@ -192,7 +177,6 @@ export function RepoSelector({
 }
 
 export default function PRIndex() {
-  const [_, setSelectedRepos] = useState<Array<string>>([]);
   const {
     pulls,
     repos,
@@ -212,7 +196,6 @@ export default function PRIndex() {
         <RepoSelector
           options={repos.map((repo) => repo.fullName)}
           selectedRepos={selectedRepos}
-          setSelectedRepos={setSelectedRepos}
         />
       </div>
       {pulls.map((pull) => (
