@@ -1,7 +1,7 @@
 import { fetchJson } from "~/utils";
 
 export type PR = {
-  id: number;
+  number: number;
   title: string;
   age: string;
   state: string;
@@ -18,12 +18,10 @@ export type PRByRepo = {
   prs: Array<PR>;
 };
 
-const getUrl = (org: string, repo: string, token: string, username: string) => {
-  if (!username) throw new Error("missing GITHUB_USERNAME");
-  if (!token) throw new Error("missing GITHUB_TOKEN");
+const getUrl = (org: string, repo: string) => {
   if (!repo) throw new Error("missing repo");
   if (!org) throw new Error("missing org");
-  return `https://${username}:${token}@api.github.com/repos/${org}/${repo}/pulls?state=open`;
+  return `https://api.github.com/repos/${org}/${repo}/pulls?state=open`;
 };
 
 const calculateAge = (createdAt: string) => {
@@ -31,69 +29,40 @@ const calculateAge = (createdAt: string) => {
   const now = +new Date();
   const diffDays = ~~((now - date) / (1000 * 60 * 60 * 24));
 
-  if (diffDays) return diffDays === 1 ? "1 day" : `${diffDays} days`;
+  if (diffDays) return diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
 
   const diffHours = ~~((now - date) / (1000 * 60 * 60));
-  return diffHours ? `${diffHours} hours` : `now`;
+  return diffHours ? `${diffHours} hours ago` : `now`;
 };
 
-const addAge = (pr: PR): PR & { age: string } => {
-  const age = calculateAge(pr.created_at) + " ago";
-  return { ...pr, age };
-};
+const addAge = (pr: PR): PR & { age: string } => ({
+  ...pr,
+  age: calculateAge(pr.created_at),
+});
 
-const getRepoPRs = async (
-  org: string,
-  repo: string,
-  token: string,
-  username: string
-) => {
-  const url = getUrl(org, repo, token, username);
-  console.log({ url });
-  const repoPRs = await (await fetchJson<Array<PR>>(url)).map(addAge);
+const getRepoPRs = async (org: string, repo: string, token: string) => {
+  const url = getUrl(org, repo);
+  const repoPRs = await await fetchJson<Array<PR>>(url, token);
+  const prsWithAge = repoPRs.map(addAge);
   return {
     repoName: repo,
     orgName: org,
-    prs: repoPRs,
+    prs: prsWithAge,
   };
 };
 
-export async function getPRs(): Promise<Array<PRByRepo>> {
-  const repoPRs = await getRepoPRs(
-    // "statsbomb",
-    // "react-components",
-    "facebook",
-    "react",
-    "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",
-    "graycodes"
+export async function getPRs(
+  token: string,
+  selectedRepos: Array<string> = []
+): Promise<Array<PRByRepo>> {
+  const repoPRs = await Promise.all(
+    selectedRepos.map((selectedRepo) => {
+      const [org, repo] = selectedRepo.split("/");
+      if (!org || !repo) return Promise.resolve([]);
+
+      return getRepoPRs(org, repo, token);
+    })
   );
 
-  // console.log({ repoPRs });
-
-  return [repoPRs] as Array<PRByRepo>;
-
-  return [
-    {
-      repoName: "foo",
-      orgName: "bar",
-      prs: [
-        {
-          age: "my-first-post",
-          title: "My First Post",
-        },
-        {
-          age: "90s-mixtape",
-          title: "A Mixtape I Made Just For You",
-        },
-        {
-          age: "90",
-          title: "A You",
-        },
-        {
-          age: "9mixtape",
-          title: "A Mixtape  Just ",
-        },
-      ],
-    },
-  ];
+  return repoPRs as Array<PRByRepo>;
 }

@@ -70,10 +70,12 @@ export function validateEmail(email: unknown): email is string {
   return typeof email === "string" && email.length > 3 && email.includes("@");
 }
 
-export async function fetchJson<T>(url: string): Promise<T> {
+export async function fetchJson<T>(url: string, token: string): Promise<T> {
   let json;
   try {
-    const raw = await fetch(url);
+    const raw = await fetch(url, {
+      headers: { Authorization: `token ${token}` },
+    });
     json = await raw.json();
   } catch (error) {
     console.error(`Failed to fetch ${url}`);
