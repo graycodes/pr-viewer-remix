@@ -41,7 +41,7 @@ export const loader = async ({ request: req }: { request: Request }) => {
   const user = await userRaw.json();
   const username = user.login;
 
-  return redirect("http://localhost:3000", {
+  return redirect(process.env.DEPLOY_URL, {
     headers: [
       ["Set-Cookie", await cookieAccessToken.serialize(access_token)],
       ["Set-Cookie", await cookieUsername.serialize(username)],

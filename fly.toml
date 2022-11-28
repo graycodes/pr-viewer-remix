@@ -1,4 +1,4 @@
-# fly.toml file generated for pr-viewer on 2022-11-27T21:50:56Z
+# fly.toml file generated for pr-viewer on 2022-11-27T22:03:19Z
 
 app = "pr-viewer"
 kill_signal = "SIGINT"
