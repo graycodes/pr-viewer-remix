@@ -119,14 +119,15 @@ const RepoCard = ({
           ×
         </button>
       </div>
-      {repo.prs.length === 0 && "There are no open PRs for this repo"}
-      {repo.prs.map((pr) => (
-        <PRCard
-          key={`${repo.orgName}/${repo.repoName}/${pr.number}`}
-          pr={pr}
-          pull={repo}
-        />
-      ))}
+      {repo?.prs?.length === 0 && "There are no open PRs for this repo"}
+      {repo.prs &&
+        repo.prs.map((pr) => (
+          <PRCard
+            key={`${repo.orgName}/${repo.repoName}/${pr.number}`}
+            pr={pr}
+            pull={repo}
+          />
+        ))}
     </>
   );
 };
