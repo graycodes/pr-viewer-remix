@@ -171,7 +171,10 @@ export function RepoSelector({
   return (
     <div>
       <div>
-        <button onClick={clickGo} className="m-1 bg-violet-200">
+        <button
+          onClick={clickGo}
+          className="m-1 bg-violet-200 p-[2px] hover:bg-violet-100"
+        >
           Save Params In URL
         </button>
         <input
@@ -250,7 +253,7 @@ export default function PRIndex() {
 
   return (
     <main className="relative min-h-screen">
-      <div className="relative m-2 flex-wrap justify-between bg-white p-2 shadow sm:flex">
+      <div className="relative m-2 flex-wrap items-center justify-between bg-white p-2 shadow sm:flex">
         <A
           href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
         >
