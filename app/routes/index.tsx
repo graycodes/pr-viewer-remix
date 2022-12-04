@@ -1,14 +1,21 @@
-import { Link } from "@remix-run/react";
+import { Link, useFetcher } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { getPRs, PRByRepo, PR } from "~/models/pr.server";
 import { cookieAccessToken, cookieUsername } from "~/cookie";
 import { getRepos } from "~/models/repo.server";
-import { useEffect, useState } from "react";
+import React, {
+  ComponentProps,
+  PropsWithChildren,
+  ReactPropTypes,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 type LoaderData = {
   // this is a handy way to say: "repos is whatever type getPRs resolves to"
-  pulls: Awaited<ReturnType<typeof getPRs>>;
+  //pulls: Awaited<ReturnType<typeof getPRs>>;
   repos: Awaited<ReturnType<typeof getRepos>>;
   selectedRepos: Array<string>;
   ENV: {
@@ -24,10 +31,10 @@ export const loader = async ({ request }: { request: Request }) => {
   const selectedRepos = new URL(request.url).searchParams.getAll("repo");
 
   const repos = await getRepos(token);
-  const pulls = await getPRs(token, selectedRepos);
+  //const pulls = await getPRs(token, selectedRepos);
 
   return json<LoaderData>({
-    pulls,
+    // pulls,
     repos,
     selectedRepos,
     ENV: {
@@ -37,6 +44,25 @@ export const loader = async ({ request }: { request: Request }) => {
   });
 };
 
+const A: React.FC<{
+  className?: string;
+  children: React.ReactNode;
+  href: string;
+  onClick?: () => void;
+}> = (props) => (
+  <a
+    {...props}
+    target="_blank"
+    rel="noreferrer"
+    className={
+      "font-bold underline hover:text-violet-500 hover:no-underline " +
+      (props.className || "")
+    }
+  >
+    {props.children}
+  </a>
+);
+
 const PRCard = ({ pull, pr }: { pull: PRByRepo; pr: PR }) => {
   return (
     <div
@@ -44,14 +70,12 @@ const PRCard = ({ pull, pr }: { pull: PRByRepo; pr: PR }) => {
       className="h-13 m-2 flex-1 bg-white p-2 text-sm shadow"
     >
       <div>
-        <a
-          className="max-w-[90px] overflow-hidden overflow-ellipsis whitespace-nowrap font-bold underline hover:no-underline"
+        <A
+          className="max-w-[90px] overflow-hidden overflow-ellipsis whitespace-nowrap"
           href={pr.html_url}
-          target="_blank"
-          rel="noreferrer"
         >
           #{pr.number} {pr.title}
-        </a>
+        </A>
       </div>
       <div className="flex justify-between">
         <span className="truncate break-all" title={pr.created_at}>
@@ -59,56 +83,48 @@ const PRCard = ({ pull, pr }: { pull: PRByRepo; pr: PR }) => {
         </span>
         {/* <span className="truncate break-all"></span> */}
         <span className="truncate break-all">
-          <a
-            target="_blank"
-            rel="noreferrer"
-            className="underline hover:no-underline"
-            href={`https://github.com/${pr.user.login}`}
-          >
-            {pr.user.login}
-          </a>
+          <A href={`https://github.com/${pr.user.login}`}>{pr.user.login}</A>
         </span>
       </div>
     </div>
   );
 };
 
-const RepoCard = ({ pull }: { pull: PRByRepo }) => {
+const RepoCard = ({
+  repo,
+  removeRepo,
+}: {
+  repo: PRByRepo;
+  removeRepo: (arg0: PRByRepo) => void;
+}) => {
   return (
     <>
       <div className="flex w-full justify-between">
         <div>
-          <a
-            className="font-bold underline hover:no-underline"
-            rel="noreferrer"
-            target="_blank"
-            href={`https://github.com/${pull.orgName}`}
+          <A
+            className="text-lg text-violet-700"
+            href={`https://github.com/${repo.orgName}`}
           >
-            {pull.orgName}
-          </a>{" "}
+            {repo.orgName}
+          </A>{" "}
           /{" "}
-          <a
-            className="font-bold underline hover:no-underline"
-            rel="noreferrer"
-            target="_blank"
-            href={`https://github.com/${pull.orgName}/${pull.repoName}`}
+          <A
+            className="text-lg text-violet-700"
+            href={`https://github.com/${repo.orgName}/${repo.repoName}`}
           >
-            {pull.repoName}
-          </a>
+            {repo.repoName}
+          </A>
         </div>
-        <a
-          href="#"
-          className="m-1 underline hover:no-underline"
-          onClick={() => removeRepo(pull)}
-        >
+        <button className="m-1" onClick={() => removeRepo(repo)}>
           ×
-        </a>
+        </button>
       </div>
-      {pull.prs.map((pr) => (
+      {repo.prs.length === 0 && "There are no open PRs for this repo"}
+      {repo.prs.map((pr) => (
         <PRCard
-          key={`${pull.orgName}/${pull.repoName}/${pr.number}`}
+          key={`${repo.orgName}/${repo.repoName}/${pr.number}`}
           pr={pr}
-          pull={pull}
+          pull={repo}
         />
       ))}
     </>
@@ -118,9 +134,13 @@ const RepoCard = ({ pull }: { pull: PRByRepo }) => {
 export function RepoSelector({
   options,
   selectedRepos,
+  setSelectedRepos,
+  refetch,
 }: {
   options: Array<string>;
   selectedRepos: Array<string>;
+  setSelectedRepos: (arg0: string[]) => void;
+  refetch: (arg0: HTMLFormElement) => void;
 }) {
   const [filterText, setFilterText] = useState<string>("");
   const [open, setOpen] = useState(false);
@@ -133,12 +153,14 @@ export function RepoSelector({
       selectedRepos.length ? !selectedRepos.includes(opt) : true
     );
 
-  const onClick = (opt: string) => () => {
-    const path = [...selectedRepos, opt].reduce(
-      (newPath, repo) => `${newPath}repo=${repo}&`,
-      "?"
-    );
-    document.location = path;
+  const onClick = (opt: string) => (event) => {
+    // const path = [...selectedRepos, opt].reduce(
+    //   (newPath, repo) => `${newPath}repo=${repo}&`,
+    //   "?"
+    // );
+    // document.location = path;
+    setSelectedRepos([...selectedRepos, opt]);
+    refetch(event.target.form);
   };
 
   return (
@@ -162,13 +184,13 @@ export function RepoSelector({
       {open && (
         <div className="fixed z-20 h-80 w-80 overflow-scroll bg-violet-100">
           {opts.map((opt) => (
-            <span
-              className="m-1 block cursor-pointer bg-white p-1 hover:bg-violet-100"
+            <button
+              className="m-1 block w-full cursor-pointer bg-white p-1 text-left hover:bg-violet-100"
               key={opt}
               onClick={onClick(opt)}
             >
               {opt}
-            </span>
+            </button>
           ))}
         </div>
       )}
@@ -178,34 +200,77 @@ export function RepoSelector({
 
 export default function PRIndex() {
   const {
-    pulls,
+    // pulls,
     repos,
-    selectedRepos,
+    selectedRepos: selectedReposFromUrl,
     ENV: { GITHUB_CLIENT_ID, GITHUB_TOKEN },
   } = useLoaderData<LoaderData>();
 
+  const [selectedRepos, setSelectedRepos] = useState(selectedReposFromUrl);
+  const pullsFetcher = useFetcher();
+
+  const removeRepo = (repo: PRByRepo) => {
+    const repoString = `${repo.orgName}/${repo.repoName}`;
+    const repos = selectedRepos.filter((r) => r !== repoString);
+    setSelectedRepos(repos);
+  };
+
+  const formRef = useRef(null);
+
+  const refetch = (form?: HTMLFormElement) => {
+    if (!form && !formRef.current) return;
+    pullsFetcher.submit(form || formRef.current);
+  };
+
+  useEffect(() => {
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRepos]);
+
   return (
-    <main className="relative min-h-screen bg-violet-500">
-      <div className="relative m-2 flex-wrap justify-between bg-violet-200 p-2 shadow sm:flex">
-        <a
-          className="underline hover:no-underline"
+    <main className="relative min-h-screen">
+      <div className="relative m-2 flex-wrap justify-between bg-white p-2 shadow sm:flex">
+        <A
+          //className="font-normal"
           href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
         >
           Reauthenticate
-        </a>
-        <RepoSelector
-          options={repos.map((repo) => repo.fullName)}
-          selectedRepos={selectedRepos}
-        />
-      </div>
-      {pulls.map((pull) => (
-        <div
-          key={pull.repoName}
-          className="relative m-2 flex-wrap bg-violet-200 p-2 shadow sm:flex sm:items-center sm:justify-around"
+        </A>
+        <pullsFetcher.Form
+          ref={formRef}
+          method="get"
+          action="/pulls"
+          onChange={(event) => {
+            console.log("changed222!");
+          }}
         >
-          <RepoCard pull={pull} />
-        </div>
-      ))}
+          <RepoSelector
+            options={repos.map((repo) => repo.fullName)}
+            selectedRepos={selectedRepos}
+            setSelectedRepos={setSelectedRepos}
+            refetch={refetch}
+          />
+          <input
+            type="text"
+            hidden
+            name="selectedRepos"
+            value={selectedRepos}
+            onChange={(event) => {
+              console.log("changed!");
+              pullsFetcher.submit(event.target.form);
+            }}
+          />
+        </pullsFetcher.Form>
+      </div>
+      {pullsFetcher.data &&
+        pullsFetcher.data.pulls.map((repo) => (
+          <div
+            key={repo.repoName}
+            className="relative m-2 flex-wrap p-2 sm:flex sm:items-center sm:justify-around"
+          >
+            <RepoCard repo={repo} removeRepo={removeRepo} />
+          </div>
+        ))}
     </main>
   );
 }
