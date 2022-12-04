@@ -153,12 +153,16 @@ export function RepoSelector({
       selectedRepos.length ? !selectedRepos.includes(opt) : true
     );
 
+  const clickGo = () => {
+    const path = selectedRepos.reduce(
+      (newPath, repo) => `${newPath}repo=${repo}&`,
+      "?"
+    );
+    document.location = path;
+  };
+
   const onClick = (opt: string) => (event) => {
-    // const path = [...selectedRepos, opt].reduce(
-    //   (newPath, repo) => `${newPath}repo=${repo}&`,
-    //   "?"
-    // );
-    // document.location = path;
+    setOpen(false);
     setSelectedRepos([...selectedRepos, opt]);
     refetch(event.target.form);
   };
@@ -166,8 +170,11 @@ export function RepoSelector({
   return (
     <div>
       <div>
+        <button onClick={clickGo} className="m-1 bg-violet-200">
+          Save Params In URL
+        </button>
         <input
-          className="w-80 px-1"
+          className="w-80 border-2  border-violet-200 px-1"
           placeholder="Search repos..."
           type={"text"}
           value={filterText}
@@ -207,6 +214,7 @@ export default function PRIndex() {
   } = useLoaderData<LoaderData>();
 
   const [selectedRepos, setSelectedRepos] = useState(selectedReposFromUrl);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
   const pullsFetcher = useFetcher();
 
   const removeRepo = (repo: PRByRepo) => {
@@ -215,6 +223,17 @@ export default function PRIndex() {
     setSelectedRepos(repos);
   };
 
+  useEffect(() => {
+    console.log("starting interval");
+
+    setInterval(() => setLastRefresh(new Date()), 60000);
+  }, []);
+
+  useEffect(() => {
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastRefresh]);
+
   const formRef = useRef(null);
 
   const refetch = (form?: HTMLFormElement) => {
@@ -222,6 +241,7 @@ export default function PRIndex() {
     pullsFetcher.submit(form || formRef.current);
   };
 
+  // hax
   useEffect(() => {
     refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,11 +251,13 @@ export default function PRIndex() {
     <main className="relative min-h-screen">
       <div className="relative m-2 flex-wrap justify-between bg-white p-2 shadow sm:flex">
         <A
-          //className="font-normal"
           href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
         >
           Reauthenticate
         </A>
+        <span suppressHydrationWarning>
+          Last Refreshed: {lastRefresh.toLocaleString()}
+        </span>
         <pullsFetcher.Form
           ref={formRef}
           method="get"
