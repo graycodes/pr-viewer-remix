@@ -67,7 +67,9 @@ const PRCard = ({ pull, pr }: { pull: PRByRepo; pr: PR }) => {
   return (
     <div
       key={`${pull.orgName} ${pull.repoName} ${pr.title}`}
-      className="h-13 m-2 flex-1 bg-white p-2 text-sm shadow"
+      className={`h-13 m-2 flex-1 rounded-tl border-l-4 border-violet-400 bg-white p-2 text-sm shadow ${
+        pr.reviewer ? "bg-violet-100" : ""
+      }`}
     >
       <div>
         <A
@@ -101,15 +103,12 @@ const RepoCard = ({
     <>
       <div className="flex w-full justify-between">
         <div>
-          <A
-            className="text-lg text-violet-700"
-            href={`https://github.com/${repo.orgName}`}
-          >
+          <A className="text-lg" href={`https://github.com/${repo.orgName}`}>
             {repo.orgName}
           </A>{" "}
           /{" "}
           <A
-            className="text-lg text-violet-700"
+            className="text-lg"
             href={`https://github.com/${repo.orgName}/${repo.repoName}`}
           >
             {repo.repoName}
@@ -173,12 +172,12 @@ export function RepoSelector({
       <div>
         <button
           onClick={clickGo}
-          className="m-1 bg-violet-200 p-[2px] hover:bg-violet-100"
+          className="m-1 bg-violet-400 p-[2px] px-2 text-white shadow hover:bg-violet-300"
         >
           Save Params In URL
         </button>
         <input
-          className="w-80 border-2  border-violet-200 px-1"
+          className="w-80 border-2  border-violet-400 px-1 shadow"
           placeholder="Search repos..."
           type={"text"}
           value={filterText}
@@ -253,7 +252,7 @@ export default function PRIndex() {
 
   return (
     <main className="relative min-h-screen">
-      <div className="relative m-2 flex-wrap items-center justify-between bg-white p-2 shadow sm:flex">
+      <div className="relative m-2 flex-wrap items-center justify-between  sm:flex">
         <A
           href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
         >

@@ -10,6 +10,7 @@ export type PR = {
   user: {
     login: string;
   };
+  reviewer: boolean;
 };
 
 export type PRByRepo = {
@@ -40,10 +41,25 @@ const addAge = (pr: PR): PR & { age: string } => ({
   age: calculateAge(pr.created_at),
 });
 
-const getRepoPRs = async (org: string, repo: string, token: string) => {
+const addReviewer =
+  (username: string) =>
+  (pr: PR): PR & { reviewer: boolean } => ({
+    ...pr,
+    reviewer: pr.requested_reviewers.map((rr) => rr.login).includes(username),
+  });
+
+const getRepoPRs = async (
+  org: string,
+  repo: string,
+  token: string,
+  username: string
+) => {
   const url = getUrl(org, repo);
   const repoPRs = await await fetchJson<Array<PR>>(url, token);
-  const prsWithAge = repoPRs.map(addAge);
+  if (repoPRs?.message) return { reoName: repo, orgName: org, prs: ["Error"] };
+
+  const prsWithAge = repoPRs.map(addAge).map(addReviewer(username));
+
   return {
     repoName: repo,
     orgName: org,
@@ -53,14 +69,15 @@ const getRepoPRs = async (org: string, repo: string, token: string) => {
 
 export async function getPRs(
   token: string,
-  selectedRepos: Array<string> = []
+  selectedRepos: Array<string> = [],
+  username: string
 ): Promise<Array<PRByRepo>> {
   const repoPRs = await Promise.all(
     selectedRepos.map((selectedRepo) => {
       const [org, repo] = selectedRepo.split("/");
       if (!org || !repo) return Promise.resolve([]);
 
-      return getRepoPRs(org, repo, token);
+      return getRepoPRs(org, repo, token, username);
     })
   );
 

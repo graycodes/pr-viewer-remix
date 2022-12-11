@@ -14,7 +14,7 @@ export const loader = async ({ request }: { request: Request }) => {
 
   console.log("selrep", selectedRepos);
 
-  const pulls = await getPRs(token, selectedRepos);
+  const pulls = await getPRs(token, selectedRepos, username);
 
   return json({
     pulls,
