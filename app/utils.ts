@@ -78,7 +78,7 @@ export async function fetchJson<T>(url: string, token: string): Promise<T> {
     });
     json = await raw.json();
   } catch (error) {
-    console.error(`Failed to fetch ${url}`);
+    console.warn(`Failed to fetch '${url}'`);
   }
   return json;
 }
