@@ -1,6 +1,6 @@
 import { fetchJson } from "~/utils";
 
-export type PR = {
+export interface Pull {
   number: number;
   title: string;
   age: string;
@@ -11,15 +11,17 @@ export type PR = {
     login: string;
   };
   reviewer: boolean;
+  requested_reviewers: Array<string>
+  message: string;
 };
 
-export type PRByRepo = {
+export interface PullsByOrgRepo {
   repoName: string;
   orgName: string;
-  prs: Array<PR>;
+  prs: Array<Pull>;
 };
 
-const getUrl = (org: string, repo: string) => {
+const getOpenPullsUrl = (org: string, repo: string) => {
   if (!repo) throw new Error("missing repo");
   if (!org) throw new Error("missing org");
   return `https://api.github.com/repos/${org}/${repo}/pulls?state=open`;
@@ -36,16 +38,16 @@ const calculateAge = (createdAt: string) => {
   return diffHours ? `${diffHours} hours ago` : `now`;
 };
 
-const addAge = (pr: PR): PR & { age: string } => ({
-  ...pr,
-  age: calculateAge(pr.created_at),
+const addAge = (pull: Pull): Pull & { age: string } => ({
+  ...pull,
+  age: calculateAge(pull.created_at),
 });
 
 const addReviewer =
   (username: string) =>
-  (pr: PR): PR & { reviewer: boolean } => ({
-    ...pr,
-    reviewer: pr.requested_reviewers.map((rr) => rr.login).includes(username),
+  (pull: Pull): Pull & { reviewer: boolean } => ({
+    ...pull,
+    reviewer: pull.requested_reviewers.map((rr) => rr.login).includes(username),
   });
 
 const getRepoPRs = async (
@@ -54,9 +56,9 @@ const getRepoPRs = async (
   token: string,
   username: string
 ) => {
-  const url = getUrl(org, repo);
-  const repoPRs = await await fetchJson<Array<PR>>(url, token);
-  if (repoPRs?.message) return { reoName: repo, orgName: org, prs: ["Error"] };
+  const url = getOpenPullsUrl(org, repo);
+  const repoPRs = await await fetchJson<Array<Pull>>(url, token);
+  // if (repoPRs?.message) return { repoName: repo, orgName: org, prs: ["Error"] };
 
   const prsWithAge = repoPRs.map(addAge).map(addReviewer(username));
 
@@ -71,7 +73,7 @@ export async function getPRs(
   token: string,
   selectedRepos: Array<string> = [],
   username: string
-): Promise<Array<PRByRepo>> {
+): Promise<Array<PullsByOrgRepo>> {
   const repoPRs = await Promise.all(
     selectedRepos.map((selectedRepo) => {
       const [org, repo] = selectedRepo.split("/");
@@ -81,5 +83,5 @@ export async function getPRs(
     })
   );
 
-  return repoPRs as Array<PRByRepo>;
+  return repoPRs as Array<PullsByOrgRepo>;
 }
