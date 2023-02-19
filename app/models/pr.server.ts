@@ -57,7 +57,14 @@ const getRepoPRs = async (
   username: string
 ) => {
   const url = getOpenPullsUrl(org, repo);
-  const repoPRs = await await fetchJson<Array<Pull>>(url, token);
+
+  let repoPRs;
+  try {
+  repoPRs = await fetchJson<Array<Pull>>(url, token);
+  } catch (e) {
+    console.warn('Could not get PRs for repo', e);
+    return {repoName: repo, orgName: org, prs: []} // empty
+  } 
   // if (repoPRs?.message) return { repoName: repo, orgName: org, prs: ["Error"] };
 
   const prsWithAge = repoPRs.map(addAge).map(addReviewer(username));

@@ -336,7 +336,7 @@ export default function PRIndex() {
     try {
       pullsFetcher.submit(form || formRef.current);
     } catch (e) {
-      console.warn('unable to fetch at this time')
+      console.warn('unable to fetch at this time', e)
     }
   };
 
