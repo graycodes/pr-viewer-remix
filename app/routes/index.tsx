@@ -176,7 +176,6 @@ export function RepoSelector({
   return (
     <>
       <div>
-        <Button className=" w-full" onClick={clickGo}>Save Params In URL</Button>
         <input
           className="border-2 border-violet-400 px-1 shadow w-full"
           placeholder="Search repos..."
@@ -185,6 +184,7 @@ export function RepoSelector({
           onFocus={(e) => setOpen(true)}
           onChange={(e) => setFilterText(e.target.value)}
         />
+        <Button className=" w-full" onClick={clickGo}>Save Params In URL</Button>
       </div>
       {open && (
         <div
@@ -237,8 +237,8 @@ const SideBar = ({
   return (
     <nav
       id="nav-bar"
-      className={`flex cursor-pointer flex-col bg-white p-1 shadow-md transition-all hover:bg-zinc-100`}
-      style={{ width: sidebarOpen ? "240px" : "40px" }}
+      className={`flex cursor-pointer flex-col bg-white p-4 shadow-md transition-all hover:bg-zinc-100 hover:border-r-4 border-zinc-400`}
+      style={{ width: sidebarOpen ? "240px" : "60px" }}
       onClick={(event) => {
         if (event?.target?.id === 'nav-bar') setSidebarOpen(!sidebarOpen)
       }}
@@ -253,8 +253,6 @@ const SideBar = ({
 
       {sidebarOpen && (
         <>
-          {/* <h1 className="font-bold">PR Viewer</h1> */}
-          {/* <hr className="mb-6" /> */}
           <hr className="mb-6" />
           <Link
             className="mb-4"
@@ -335,7 +333,11 @@ export default function PRIndex() {
 
   const refetch = (form?: HTMLFormElement) => {
     if (!form && !formRef.current) return;
-    pullsFetcher.submit(form || formRef.current);
+    try {
+      pullsFetcher.submit(form || formRef.current);
+    } catch (e) {
+      console.warn('unable to fetch at this time')
+    }
   };
 
   // hax
@@ -366,7 +368,7 @@ export default function PRIndex() {
         pullsFetcher.data.pulls.map((repo) => (
           <div
             key={repo.repoName}
-            className="relative m-2 flex-wrap max-w-6xl p-2 sm:flex sm:items-center sm:justify-around"
+            className="relative m-2 flex-wrap max-w-6xl w-full p-2 sm:flex sm:items-center sm:justify-around"
           >
             <RepoCard repo={repo} removeRepo={removeRepo} />
           </div>
