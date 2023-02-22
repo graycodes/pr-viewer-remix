@@ -190,7 +190,7 @@ const SideBar = ({
   return (
     <nav
       id="nav-bar"
-      className={`relative box-content flex cursor-pointer flex-col border-zinc-400 bg-white p-4 shadow-md transition-all hover:border-r-4 hover:bg-zinc-100`}
+      className={`relative flex cursor-pointer flex-col border-zinc-400 bg-white p-4 shadow-md transition-all hover:border-r-4 hover:bg-zinc-100`}
       style={{ width: sidebarOpen ? "240px" : "60px" }}
       onClick={(event) => {
         if ((event.target as HTMLElement)?.id === "nav-bar")
