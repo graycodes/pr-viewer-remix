@@ -11,14 +11,20 @@ export interface Pull {
     login: string;
   };
   reviewer: boolean;
-  requested_reviewers: Array<string>;
-};
+  requested_reviewers: Array<{ login: string }>;
+}
 
-export interface PullsByOrgRepo {
+export interface PullsByRepo {
   repoName: string;
   orgName: string;
-  prs: Array<Pull>;
-};
+  pulls: Array<Pull>;
+}
+
+export interface GHError {
+  message: string;
+}
+
+const isGHError = (arg: Pull[] | GHError): arg is GHError => "message" in arg;
 
 const getOpenPullsUrl = (org: string, repo: string) => {
   if (!repo) throw new Error("missing repo");
@@ -57,22 +63,25 @@ const getRepoPRs = async (
 ) => {
   const url = getOpenPullsUrl(org, repo);
 
-  let repoPRs;
+  let response;
   try {
-  repoPRs = await fetchJson<Array<Pull> | { message:string }>(url, token);
+    response = await fetchJson<Array<Pull> | GHError>(url, token);
   } catch (e) {
-    console.warn('Could not get PRs for repo', e);
-    return {repoName: repo, orgName: org, prs: []} // empty
-  } 
-  // TODO: Fix this TS error
-  if (repoPRs?.message) return { repoName: repo, orgName: org, prs: [{user: {}, title: `Error: ${repoPRs.message}`}] };
+    console.warn("Could not get pulls for repo", e);
+    return { repoName: repo, orgName: org, pulls: [] }; // empty
+  }
 
-  const prsWithAge = repoPRs.map(addAge).map(addReviewer(username));
+  if (isGHError(response))
+    return {
+      repoName: repo,
+      orgName: org,
+      pulls: [{ user: {}, title: `Error: ${response.message}` }],
+    };
 
   return {
     repoName: repo,
     orgName: org,
-    prs: prsWithAge,
+    pulls: response.map(addAge).map(addReviewer(username)),
   };
 };
 
@@ -80,7 +89,7 @@ export async function getPRs(
   token: string,
   selectedRepos: Array<string> = [],
   username: string
-): Promise<Array<PullsByOrgRepo>> {
+): Promise<Array<PullsByRepo>> {
   const repoPRs = await Promise.all(
     selectedRepos.map((selectedRepo) => {
       const [org, repo] = selectedRepo.split("/");
@@ -90,5 +99,5 @@ export async function getPRs(
     })
   );
 
-  return repoPRs as Array<PullsByOrgRepo>;
+  return repoPRs as Array<PullsByRepo>;
 }

@@ -4,7 +4,6 @@ import { getPRs } from "~/models/pr.server";
 
 export const loader = async ({ request }: { request: Request }) => {
   const cookies = request.headers.get("Cookie");
-  console.log("cookie", request.headers.get("Cookie"));
 
   const token = await cookieAccessToken.parse(cookies);
   const username = await cookieUsername.parse(cookies);
@@ -12,11 +11,7 @@ export const loader = async ({ request }: { request: Request }) => {
     .get("selectedRepos")
     ?.split(",");
 
-  console.log("selrep", selectedRepos);
-
   const pulls = await getPRs(token, selectedRepos, username);
 
-  return json({
-    pulls,
-  });
+  return json(pulls);
 };
