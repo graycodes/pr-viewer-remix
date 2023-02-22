@@ -5,6 +5,7 @@ import { useLoaderData } from "@remix-run/react";
 import type { PullsByRepo, Pull } from "~/models/pr.server";
 import React, { useEffect, useRef, useState } from "react";
 import type { Repo } from "~/models/repo.server";
+import { A, Link } from "~/components/buttons";
 
 type LoaderData = {
   selectedRepos: Array<string>;
@@ -25,25 +26,6 @@ export const loader = async ({ request }: { request: Request }) => {
     },
   });
 };
-
-const A: React.FC<{
-  className?: string;
-  children: React.ReactNode;
-  href: string;
-  onClick?: () => void;
-}> = (props) => (
-  <a
-    {...props}
-    target="_blank"
-    rel="noreferrer"
-    className={
-      "font-bold underline hover:text-violet-500 hover:no-underline " +
-      (props.className || "")
-    }
-  >
-    {props.children}
-  </a>
-);
 
 const PRCard = ({ pull, pr }: { pull: PullsByRepo; pr: Pull }) => {
   return (
@@ -113,29 +95,13 @@ const RepoCard = ({
   );
 };
 
-const buttonStyles =
-  "bg-violet-400 p-[2px] px-2 text-white text-center shadow hover:bg-violet-300";
-
-const Link = <T extends { className?: string; children: React.ReactNode }>(
-  props: T
-) => (
-  <a {...props} className={buttonStyles + " " + props.className}>
-    {props.children}
-  </a>
-);
-const Button = <T extends { className?: string; children: React.ReactNode }>(
-  props: T
-) => <button {...props} className={buttonStyles + " " + props.className} />;
-
 export function RepoSelector({
   selectedRepos,
   setSelectedRepos,
-  refetch,
   reposFetcher,
 }: {
   selectedRepos: Array<string>;
   setSelectedRepos: (arg0: string[]) => void;
-  refetch: (arg0: HTMLFormElement) => void;
   reposFetcher: FetcherWithComponents<{ repos: Repo[] }>;
 }) {
   const [filterText, setFilterText] = useState<string>("");
@@ -152,20 +118,16 @@ export function RepoSelector({
       selectedRepos.length ? !selectedRepos.includes(opt) : true
     );
 
-  const onClickSaveParams = () => {
-    const path = selectedRepos.reduce(
+  const onClick = (opt: string) => () => {
+    setOpen(false);
+    const newSelectedRepos = [...selectedRepos, opt];
+    setSelectedRepos(newSelectedRepos);
+
+    const path = newSelectedRepos.reduce(
       (newPath, repo) => `${newPath}repo=${repo}&`,
       "?"
     );
-    document.location = path;
-  };
-
-  const onClick = (opt: string) => (event: React.MouseEvent) => {
-    setOpen(false);
-    setSelectedRepos([...selectedRepos, opt]);
-    const target = event.target as HTMLInputElement;
-    if (!target.form) return;
-    refetch(target.form);
+    history.pushState({}, "", path);
   };
 
   const reposFormRef = useRef(null);
@@ -173,6 +135,7 @@ export function RepoSelector({
   // runs once on startup
   useEffect(() => {
     if (!reposFormRef.current) return;
+
     try {
       reposFetcher.submit(reposFormRef.current);
     } catch (e) {
@@ -183,6 +146,7 @@ export function RepoSelector({
   return (
     <reposFetcher.Form ref={reposFormRef} method="get" action="/repos">
       <div>
+        Select repos to view:
         <input
           className="w-full border-2 border-violet-400 px-1 shadow"
           placeholder="Search repos..."
@@ -191,9 +155,6 @@ export function RepoSelector({
           onFocus={(e) => setOpen(true)}
           onChange={(e) => setFilterText(e.target.value)}
         />
-        <Button className=" w-full" onClick={onClickSaveParams}>
-          Save Params In URL
-        </Button>
       </div>
       {open && (
         <div
@@ -220,25 +181,18 @@ export function RepoSelector({
 
 const SideBar = ({
   lastRefresh,
-  pullsFetcher,
-  GITHUB_CLIENT_ID,
-  GITHUB_TOKEN,
-  formRef,
   selectedRepos,
   setSelectedRepos,
-  refetch,
 }: {
   lastRefresh: Date;
-  pullsFetcher: FetcherWithComponents<any>;
-  GITHUB_CLIENT_ID: string;
-  GITHUB_TOKEN: string;
-  formRef: React.MutableRefObject<null>;
   selectedRepos: Array<string>;
   setSelectedRepos: React.Dispatch<React.SetStateAction<string[]>>;
-  refetch: (form?: HTMLFormElement) => void;
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const reposFetcher = useFetcher();
+  const {
+    ENV: { GITHUB_CLIENT_ID, GITHUB_TOKEN },
+  } = useLoaderData<LoaderData>();
 
   return (
     <nav
@@ -271,56 +225,86 @@ const SideBar = ({
             className="mb-4"
             href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
           >
-            Reauthenticate
+            Login with GitHub
           </Link>
+
           <RepoSelector
             selectedRepos={selectedRepos}
             setSelectedRepos={setSelectedRepos}
-            refetch={refetch}
             reposFetcher={reposFetcher}
           />
-          <pullsFetcher.Form ref={formRef} method="get" action="/pulls">
-            <input
-              type="text"
-              hidden
-              name="selectedRepos"
-              value={selectedRepos}
-              onChange={(event) => {
-                pullsFetcher.submit(event.target.form);
-              }}
-            />
-          </pullsFetcher.Form>
         </>
       )}
     </nav>
   );
 };
 
-export default function PRIndex() {
-  const {
-    selectedRepos: selectedReposFromUrl,
-    ENV: { GITHUB_CLIENT_ID, GITHUB_TOKEN },
-  } = useLoaderData<LoaderData>();
+const Pulls = ({
+  pullsData,
+  removeRepo,
+}: {
+  pullsData: PullsByRepo[];
+  removeRepo: (repo: PullsByRepo) => void;
+}) => (
+  <div className="flex w-full flex-col items-center">
+    {pullsData && pullsData.length ? (
+      pullsData.map((repo) => (
+        <div
+          key={repo.repoName}
+          className="relative m-2 w-full max-w-6xl flex-wrap p-2 sm:flex sm:items-center sm:justify-around"
+        >
+          <RepoCard repo={repo} removeRepo={removeRepo} />
+        </div>
+      ))
+    ) : (
+      <p className="mt-10 text-lg">
+        Pull Requests will be visible here once chosen from the sidebar
+      </p>
+    )}
+  </div>
+);
 
+const PullsFetcher = ({
+  formRef,
+  selectedRepos,
+  pullsFetcher,
+}: {
+  formRef: React.MutableRefObject<null>;
+  selectedRepos: string[];
+  pullsFetcher: FetcherWithComponents<PullsByRepo[]>;
+}) => (
+  <pullsFetcher.Form ref={formRef} method="get" action="/pulls">
+    <input
+      type="text"
+      hidden
+      name="selectedRepos"
+      value={selectedRepos}
+      onChange={(event) => {
+        pullsFetcher.submit(event.target.form);
+      }}
+    />
+  </pullsFetcher.Form>
+);
+
+export default function PRIndex() {
+  const { selectedRepos: selectedReposFromUrl } = useLoaderData<LoaderData>();
+
+  const formRef = useRef(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [selectedRepos, setSelectedRepos] = useState(selectedReposFromUrl);
   const pullsFetcher = useFetcher<PullsByRepo[]>();
   const pullsData: PullsByRepo[] = pullsFetcher.data || [];
 
-  const removeRepo = (repo: PullsByRepo) => {
-    const repoString = `${repo.orgName}/${repo.repoName}`;
-    const repos = selectedRepos.filter((r) => r !== repoString);
-    setSelectedRepos(repos);
-  };
-
   useEffect(() => {
-    setInterval(() => setLastRefresh(new Date()), 60000);
+    setInterval(() => setLastRefresh(new Date()), 2000);
   }, []);
 
-  const formRef = useRef(null);
+  useEffect(() => refetch(), [selectedRepos, lastRefresh]);
 
   const refetch = (form?: HTMLFormElement) => {
+    if (!selectedRepos.length) return;
     if (!form && !formRef.current) return;
+
     try {
       pullsFetcher.submit(form || formRef.current);
     } catch (e) {
@@ -328,33 +312,24 @@ export default function PRIndex() {
     }
   };
 
-  useEffect(() => refetch(), [selectedRepos, lastRefresh]);
+  const removeRepo = (repo: PullsByRepo) => {
+    const repoString = `${repo.orgName}/${repo.repoName}`;
+    const repos = selectedRepos.filter((r) => r !== repoString);
+    setSelectedRepos(repos);
+  };
 
   return (
     <main className="relative flex min-h-screen flex-row">
+      <PullsFetcher {...{ selectedRepos, pullsFetcher, formRef }} />
       <SideBar
         {...{
           lastRefresh,
           pullsFetcher,
-          GITHUB_CLIENT_ID,
-          GITHUB_TOKEN,
-          formRef,
           selectedRepos,
           setSelectedRepos,
-          refetch,
         }}
       />
-      <div className="flex w-full flex-col items-center">
-        {pullsData &&
-          pullsData.map((repo) => (
-            <div
-              key={repo.repoName}
-              className="relative m-2 w-full max-w-6xl flex-wrap p-2 sm:flex sm:items-center sm:justify-around"
-            >
-              <RepoCard repo={repo} removeRepo={removeRepo} />
-            </div>
-          ))}
-      </div>
+      <Pulls {...{ pullsData, removeRepo }} />
     </main>
   );
 }

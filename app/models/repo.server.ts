@@ -15,11 +15,16 @@ export async function getRepos(token: string): Promise<Array<Repo>> {
 
     const orgsRaw = await fetch(nextLink, headers);
     const orgsNew = await orgsRaw.json();
+
+    if (orgsNew.message === "Bad credentials")
+      throw new Error("Bad Credentials");
+
     orgs = orgs.concat(orgsNew);
 
     next = (orgsRaw.headers.get("link") || "")
       .split(", ")
       .find((u) => u.indexOf("next") > -1);
   }
+
   return orgs.map((repo) => ({ fullName: repo.full_name }));
 }

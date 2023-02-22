@@ -6,7 +6,8 @@ export const loader = async ({ request: req }: { request: Request }) => {
   const params = new URL(req.url).searchParams;
   const code = params.get("code");
 
-  const {GITHUB_CLIENT_ID,GITHUB_SECRET, GITHUB_TOKEN, DEPLOY_URL } = process.env;
+  const { GITHUB_CLIENT_ID, GITHUB_SECRET, GITHUB_TOKEN, DEPLOY_URL } =
+    process.env;
 
   if (!code) {
     console.error("no code set in oauth_callback");
@@ -14,7 +15,7 @@ export const loader = async ({ request: req }: { request: Request }) => {
   }
 
   if (!GITHUB_CLIENT_ID || !GITHUB_SECRET || !GITHUB_TOKEN || !DEPLOY_URL) {
-    console.error('Missing environment variables!')
+    console.error("Missing environment variables!");
     process.exit(1);
   }
 
@@ -24,7 +25,7 @@ export const loader = async ({ request: req }: { request: Request }) => {
     clientSecret: GITHUB_SECRET,
   });
 
-  const {token} = await auth({
+  const { token } = await auth({
     type: "oauth-user",
     code: code,
     state: GITHUB_TOKEN,
@@ -35,6 +36,7 @@ export const loader = async ({ request: req }: { request: Request }) => {
       Authorization: `token ${token}`,
     },
   });
+
   const user = await userRaw.json();
   const username = user.login;
 

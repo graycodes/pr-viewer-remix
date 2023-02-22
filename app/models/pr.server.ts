@@ -71,12 +71,7 @@ const getRepoPRs = async (
     return { repoName: repo, orgName: org, pulls: [] }; // empty
   }
 
-  if (isGHError(response))
-    return {
-      repoName: repo,
-      orgName: org,
-      pulls: [{ user: {}, title: `Error: ${response.message}` }],
-    };
+  if (isGHError(response)) throw new Error("GitHub returned an error");
 
   return {
     repoName: repo,
@@ -90,14 +85,14 @@ export async function getPRs(
   selectedRepos: Array<string> = [],
   username: string
 ): Promise<Array<PullsByRepo>> {
-  const repoPRs = await Promise.all(
-    selectedRepos.map((selectedRepo) => {
-      const [org, repo] = selectedRepo.split("/");
-      if (!org || !repo) return Promise.resolve([]);
+  const responses = selectedRepos.map((selectedRepo) => {
+    const [org, repo] = selectedRepo.split("/");
+    if (!org || !repo) return Promise.resolve([]);
 
-      return getRepoPRs(org, repo, token, username);
-    })
-  );
+    return getRepoPRs(org, repo, token, username);
+  });
 
-  return repoPRs as Array<PullsByRepo>;
+  const result = await Promise.all(responses);
+
+  return result as Array<PullsByRepo>;
 }
