@@ -120,14 +120,7 @@ export function RepoSelector({
 
   const onClick = (opt: string) => () => {
     setOpen(false);
-    const newSelectedRepos = [...selectedRepos, opt];
-    setSelectedRepos(newSelectedRepos);
-
-    const path = newSelectedRepos.reduce(
-      (newPath, repo) => `${newPath}repo=${repo}&`,
-      "?"
-    );
-    history.pushState({}, "", path);
+    setSelectedRepos([...selectedRepos, opt]);
   };
 
   const reposFormRef = useRef(null);
@@ -197,7 +190,7 @@ const SideBar = ({
   return (
     <nav
       id="nav-bar"
-      className={`flex cursor-pointer flex-col border-zinc-400 bg-white p-4 shadow-md transition-all hover:border-r-4 hover:bg-zinc-100`}
+      className={`relative box-content flex cursor-pointer flex-col border-zinc-400 bg-white p-4 shadow-md transition-all hover:border-r-4 hover:bg-zinc-100`}
       style={{ width: sidebarOpen ? "240px" : "60px" }}
       onClick={(event) => {
         if ((event.target as HTMLElement)?.id === "nav-bar")
@@ -221,18 +214,19 @@ const SideBar = ({
       {sidebarOpen && (
         <>
           <hr className="mb-6" />
-          <Link
-            className="mb-4"
-            href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
-          >
-            Login with GitHub
-          </Link>
 
           <RepoSelector
             selectedRepos={selectedRepos}
             setSelectedRepos={setSelectedRepos}
             reposFetcher={reposFetcher}
           />
+
+          <Link
+            className="absolute bottom-4"
+            href={`https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&state=${GITHUB_TOKEN}`}
+          >
+            Login with GitHub
+          </Link>
         </>
       )}
     </nav>
@@ -242,12 +236,14 @@ const SideBar = ({
 const Pulls = ({
   pullsData,
   removeRepo,
+  selectedRepos,
 }: {
   pullsData: PullsByRepo[];
   removeRepo: (repo: PullsByRepo) => void;
+  selectedRepos: string[];
 }) => (
   <div className="flex w-full flex-col items-center">
-    {pullsData && pullsData.length ? (
+    {pullsData && pullsData.length && selectedRepos.length ? (
       pullsData.map((repo) => (
         <div
           key={repo.repoName}
@@ -296,10 +292,18 @@ export default function PRIndex() {
   const pullsData: PullsByRepo[] = pullsFetcher.data || [];
 
   useEffect(() => {
-    setInterval(() => setLastRefresh(new Date()), 2000);
+    setInterval(() => setLastRefresh(new Date()), 60000);
   }, []);
 
   useEffect(() => refetch(), [selectedRepos, lastRefresh]);
+
+  useEffect(() => {
+    const path = selectedRepos.reduce(
+      (newPath, repo) => `${newPath}repo=${repo}&`,
+      "?"
+    );
+    history.pushState({}, "", path);
+  }, [selectedRepos]);
 
   const refetch = (form?: HTMLFormElement) => {
     if (!selectedRepos.length) return;
@@ -324,7 +328,7 @@ export default function PRIndex() {
       <SideBar
         {...{ lastRefresh, pullsFetcher, selectedRepos, setSelectedRepos }}
       />
-      <Pulls {...{ pullsData, removeRepo }} />
+      <Pulls {...{ pullsData, removeRepo, selectedRepos }} />
     </main>
   );
 }
