@@ -322,12 +322,7 @@ export default function PRIndex() {
     <main className="relative flex min-h-screen flex-row">
       <PullsFetcher {...{ selectedRepos, pullsFetcher, formRef }} />
       <SideBar
-        {...{
-          lastRefresh,
-          pullsFetcher,
-          selectedRepos,
-          setSelectedRepos,
-        }}
+        {...{ lastRefresh, pullsFetcher, selectedRepos, setSelectedRepos }}
       />
       <Pulls {...{ pullsData, removeRepo }} />
     </main>
