@@ -11,8 +11,7 @@ export interface Pull {
     login: string;
   };
   reviewer: boolean;
-  requested_reviewers: Array<string>
-  message: string;
+  requested_reviewers: Array<string>;
 };
 
 export interface PullsByOrgRepo {
@@ -60,12 +59,13 @@ const getRepoPRs = async (
 
   let repoPRs;
   try {
-  repoPRs = await fetchJson<Array<Pull>>(url, token);
+  repoPRs = await fetchJson<Array<Pull> | { message:string }>(url, token);
   } catch (e) {
     console.warn('Could not get PRs for repo', e);
     return {repoName: repo, orgName: org, prs: []} // empty
   } 
-  // if (repoPRs?.message) return { repoName: repo, orgName: org, prs: ["Error"] };
+  // TODO: Fix this TS error
+  if (repoPRs?.message) return { repoName: repo, orgName: org, prs: [{user: {}, title: `Error: ${repoPRs.message}`}] };
 
   const prsWithAge = repoPRs.map(addAge).map(addReviewer(username));
 
