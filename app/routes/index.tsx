@@ -78,7 +78,10 @@ const RepoCard = ({
             {repo.repoName}
           </A>
         </div>
-        <button className="m-1" onClick={() => removeRepo(repo)}>
+        <button
+          className="m-1 w-6 rounded-full bg-white pb-[1px] hover:bg-violet-400 hover:text-white"
+          onClick={() => removeRepo(repo)}
+        >
           ×
         </button>
       </div>
@@ -321,7 +324,6 @@ export default function PRIndex() {
 
     const repoString = localStorage.getItem("repos");
     const selectedReposFromStorage = repoString?.split(",");
-    console.log({ selectedReposFromStorage });
 
     if (!selectedReposFromStorage) return;
 
