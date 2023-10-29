@@ -309,12 +309,24 @@ const PullsFetcher = ({
 
 export default function PRIndex() {
   const { selectedRepos: selectedReposFromUrl } = useLoaderData<LoaderData>();
-
   const formRef = useRef(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [selectedRepos, setSelectedRepos] = useState(selectedReposFromUrl);
+
   const pullsFetcher = useFetcher<PullsByRepo[]>();
   const pullsData: PullsByRepo[] = pullsFetcher.data || [];
+
+  useEffect(() => {
+    if (selectedRepos.length) return;
+
+    const repoString = localStorage.getItem("repos");
+    const selectedReposFromStorage = repoString?.split(",");
+    console.log({ selectedReposFromStorage });
+
+    if (!selectedReposFromStorage) return;
+
+    setSelectedRepos(selectedReposFromStorage);
+  });
 
   useEffect(() => {
     setInterval(() => setLastRefresh(new Date()), 60000);
@@ -323,6 +335,9 @@ export default function PRIndex() {
   useEffect(() => refetch(), [selectedRepos, lastRefresh]);
 
   useEffect(() => {
+    if (selectedRepos.length) {
+      localStorage.setItem("repos", selectedRepos.join(","));
+    }
     const path = selectedRepos.reduce(
       (newPath, repo) => `${newPath}repo=${repo}&`,
       "?"
