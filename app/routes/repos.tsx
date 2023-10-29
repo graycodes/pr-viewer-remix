@@ -21,7 +21,5 @@ export const loader = async ({ request }: { request: Request }) => {
     );
   }
 
-  return json({
-    repos,
-  });
+  return json(repos);
 };

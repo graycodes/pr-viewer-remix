@@ -102,25 +102,41 @@ export function RepoSelector({
 }: {
   selectedRepos: Array<string>;
   setSelectedRepos: (arg0: string[]) => void;
-  reposFetcher: FetcherWithComponents<{ repos: Repo[] }>;
+  reposFetcher: FetcherWithComponents<Repo[]>;
 }) {
   const [filterText, setFilterText] = useState<string>("");
   const [open, setOpen] = useState(false);
-  const options = (
-    reposFetcher.data?.repos || [{ fullName: "loading..." }]
-  ).map((repo) => repo.fullName);
+  const [options, setOptions] = useState([
+    { fullName: "loading...", selected: false },
+  ]);
 
-  const opts = options
-    .filter((opt) =>
-      filterText ? opt.toUpperCase().includes(filterText.toUpperCase()) : true
-    )
-    .filter((opt) =>
-      selectedRepos.length ? !selectedRepos.includes(opt) : true
-    );
+  useEffect(() => {
+    const data = reposFetcher.data;
+    if (!data) return;
 
-  const onClick = (opt: string) => () => {
-    setOpen(false);
-    setSelectedRepos([...selectedRepos, opt]);
+    const opts = data.map((opt) => ({
+      ...opt,
+      selected: selectedRepos.includes(opt.fullName),
+    }));
+
+    setOptions(opts);
+  }, [reposFetcher.data, selectedRepos]);
+
+  const opts = options.filter((opt) =>
+    filterText
+      ? opt.fullName.toUpperCase().includes(filterText.toUpperCase())
+      : true
+  );
+
+  const onClick = (optionName: string) => () => {
+    if (!selectedRepos.find((repo) => repo === optionName)) {
+      console.log("adding");
+
+      setSelectedRepos([...selectedRepos, optionName]);
+    } else {
+      console.log("removing");
+      setSelectedRepos(selectedRepos.filter((repo) => repo !== optionName));
+    }
   };
 
   const reposFormRef = useRef(null);
@@ -158,13 +174,22 @@ export function RepoSelector({
       {open && (
         <div className="fixed z-20 h-80 w-80 overflow-scroll bg-violet-100">
           {opts.map((opt) => (
-            <button
-              className="m-1 block w-full cursor-pointer bg-white p-1 text-left hover:bg-violet-100"
-              key={opt}
-              onClick={onClick(opt)}
-            >
-              {opt}
-            </button>
+            <>
+              <label
+                htmlFor={`checkbox-${opt.fullName}`}
+                className={`m-1 block w-full cursor-pointer bg-white p-1 text-left hover:bg-violet-100`}
+                key={opt.fullName}
+              >
+                <input
+                  type="checkbox"
+                  checked={opt.selected}
+                  id={`checkbox-${opt.fullName}`}
+                  onChange={onClick(opt.fullName)}
+                  className="mr-1"
+                />
+                {opt.fullName}
+              </label>
+            </>
           ))}
         </div>
       )}
