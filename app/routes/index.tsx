@@ -31,8 +31,8 @@ const PRCard = ({ pull, pr }: { pull: PullsByRepo; pr: Pull }) => {
   return (
     <div
       key={`${pull.orgName} ${pull.repoName} ${pr.title}`}
-      className={`h-13 m-2 flex-1 rounded-tl border-l-4 border-violet-400 bg-white p-2 text-sm shadow ${
-        pr.reviewer ? "bg-violet-100" : ""
+      className={`h-13 m-2 flex-1 rounded-tl border-l-4 p-2 text-sm shadow ${
+         pr.draft ? "border-zinc-400 bg-zinc-200" :  pr.reviewer ? "border-violet-400 bg-violet-100" : "bg-white"
       }`}
     >
       <div>

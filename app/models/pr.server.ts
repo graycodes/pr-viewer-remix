@@ -10,6 +10,7 @@ export interface Pull {
   user: {
     login: string;
   };
+  draft: boolean;
   reviewer: boolean;
   requested_reviewers: Array<{ login: string }>;
 }
