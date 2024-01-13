@@ -13,8 +13,14 @@ export async function getRepos(token: string): Promise<Repo[]> {
     const nextLink = newNext[0].slice(1, -1);
     const headers = { headers: { Authorization: `token ${token}` } };
 
-    const orgsRaw = await fetch(nextLink, headers);
-    const orgsNew = await orgsRaw.json();
+    let orgsRaw, orgsNew;
+    try {
+      orgsRaw = await fetch(nextLink, headers);
+      orgsNew = await orgsRaw.json();
+    } catch (e) {
+      console.warn('Failed to fetch / parse next link', e);
+      return []; // ?
+    }
 
     if (orgsNew.message === "Bad credentials")
       throw new Error("Bad Credentials");

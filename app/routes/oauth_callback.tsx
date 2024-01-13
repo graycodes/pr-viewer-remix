@@ -31,13 +31,20 @@ export const loader = async ({ request: req }: { request: Request }) => {
     state: GITHUB_TOKEN,
   });
 
-  const userRaw = await fetch("https://api.github.com/user", {
-    headers: {
-      Authorization: `token ${token}`,
-    },
-  });
 
-  const user = await userRaw.json();
+  let user = {login: ''};
+
+  try {
+    const userRaw = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `token ${token}`,
+      },
+    });
+
+    user = await userRaw.json();
+  } catch (e) {
+    console.warn('Failed to fetch github user', e);
+  }
   const username = user.login;
 
   return redirect(DEPLOY_URL, {
