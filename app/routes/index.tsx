@@ -35,31 +35,38 @@ const PRCard = ({ pull, pr }: { pull: PullsByRepo; pr: Pull }) => {
          pr.draft ? "border-zinc-400 bg-zinc-200" :  pr.reviewer ? "border-violet-400 bg-violet-100" : "bg-white"
       }`}
     >
-      <div>
-        <A
-          className="max-w-[90px] overflow-hidden overflow-ellipsis whitespace-nowrap"
-          href={pr.html_url}
-        >
-          #{pr.number} {pr.title}
-        </A>
+      <div className="flex">
+        <div className="flex justify-between flex-1">
+          <A
+            className="overflow-hidden overflow-ellipsis whitespace-nowrap mr-1 flex-grow"
+            href={pr.html_url}
+          >
+            #{pr.number} {pr.title}
+          </A>
+          {Array(pr.approvals).fill(0).map((_, index) => (<img src="/green-circle.svg" className="h-3 basis-2" alt='approval' title={'Approval!'} /> ))}
+        </div>
       </div>
-      <div className="flex justify-between">
-        <span className="truncate break-all" title={pr.created_at}>
-          {pr.age}
-        </span>
-        {/* <span className="truncate break-all"></span> */}
-        <span className="truncate break-all">
-          <A href={`https://github.com/${pr.user.login}`}>{pr.user.login}</A>
-        </span>
-      </div>
+        <div className="flex justify-between">
+          <span className="flex" title={`${pr.comments} comments`}>
+            <img src="/comment.svg" alt="comments" height={20} className="h-5" />
+            <span className="mr-3">{pr.comments}</span>
+            <span className="truncate break-all" title={pr.created_at}>
+              {pr.age}
+            </span>
+          </span>
+          {/* <span className="truncate break-all"></span> */}
+          <span className="truncate break-all">
+            <A href={`https://github.com/${pr.user.login}`}>{pr.user.login}</A>
+          </span>
+        </div>
     </div>
   );
 };
 
 const RepoCard = ({
-  repo,
-  removeRepo,
-}: {
+                    repo,
+                    removeRepo
+                  }: {
   repo: PullsByRepo;
   removeRepo: (arg0: PullsByRepo) => void;
 }) => {

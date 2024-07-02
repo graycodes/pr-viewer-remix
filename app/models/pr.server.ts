@@ -13,6 +13,8 @@ export interface Pull {
   draft: boolean;
   reviewer: boolean;
   requested_reviewers: Array<{ login: string }>;
+  comments?: number;
+  approvals?: number;
 }
 
 export interface PullsByRepo {
@@ -33,6 +35,18 @@ const getOpenPullsUrl = (org: string, repo: string) => {
   return `https://api.github.com/repos/${org}/${repo}/pulls?state=open`;
 };
 
+const getCommentsUrl = (org: string, repo: string, prNumber: number) => {
+  if (!repo) throw new Error("missing repo");
+  if (!org) throw new Error("missing org");
+  return `https://api.github.com/repos/${org}/${repo}/issues/${prNumber}/comments`;
+};
+
+const getApprovalsUrl = (org: string, repo: string, prNumber: number) => {
+  if (!repo) throw new Error("missing repo");
+  if (!org) throw new Error("missing org");
+  return `https://api.github.com/repos/${org}/${repo}/pulls/${prNumber}/reviews`;
+};
+
 const calculateAge = (createdAt: string) => {
   const date = +new Date(createdAt);
   const now = +new Date();
@@ -44,17 +58,66 @@ const calculateAge = (createdAt: string) => {
   return diffHours ? `${diffHours} hours ago` : `now`;
 };
 
-const addAge = (pull: Pull): Pull & { age: string } => ({
+const addAge = (pull: Pull): Pull => ({
   ...pull,
-  age: calculateAge(pull.created_at),
+  age: calculateAge(pull.created_at)
 });
+
+const getCommentsForPR = async (org: string, repo: string, token: string, prNumber: number) => {
+  const url = getCommentsUrl(org, repo, prNumber);
+
+  let response;
+  try {
+    response = await fetchJson<Array<Pull> | GHError>(url, token);
+  } catch (e) {
+    console.warn("Could not get pulls for repo", e);
+    return 0; // empty
+  }
+
+  if (isGHError(response)) throw new Error("GitHub returned an error");
+
+  return response.length;
+};
+const getApprovalsForPR = async (org: string, repo: string, token: string, prNumber: number) => {
+  const url = getApprovalsUrl(org, repo, prNumber);
+
+  let response;
+  try {
+    response = await fetchJson<Array<Pull> | GHError>(url, token);
+  } catch (e) {
+    console.warn("Could not get pulls for repo", e);
+    return 0; // empty
+  }
+
+  if (isGHError(response)) throw new Error("GitHub returned an error");
+
+  return response.filter(review => review.state === 'APPROVED').length;
+};
+
 
 const addReviewer =
   (username: string) =>
-  (pull: Pull): Pull & { reviewer: boolean } => ({
+  (pull: Pull): Pull => ({
     ...pull,
-    reviewer: pull.requested_reviewers.map((rr) => rr.login).includes(username),
+    reviewer: pull.requested_reviewers.map((rr) => rr.login).includes(username)
   });
+
+const addComments = (org: string, repo: string, token: string) => async (pull: Pull): Promise<Pull> => {
+  const comments = await getCommentsForPR(org, repo, token, pull.number);
+
+  return {
+    ...pull,
+    comments
+  };
+};
+const addApprovals = (org: string, repo: string, token: string) => async (pull: Pull): Promise<Pull> => {
+  const approvals = await getApprovalsForPR(org, repo, token, pull.number);
+
+  return {
+    ...pull,
+    approvals
+  };
+};
 
 const getRepoPRs = async (
   org: string,
@@ -74,10 +137,15 @@ const getRepoPRs = async (
 
   if (isGHError(response)) throw new Error("GitHub returned an error");
 
+  let pulls = response.map(addAge);
+  pulls = pulls.map(addReviewer(username));
+  pulls = await Promise.all(pulls.map(addComments(org, repo, token)));
+  pulls = await Promise.all(pulls.map(addApprovals(org, repo, token)));
+
   return {
     repoName: repo,
     orgName: org,
-    pulls: response.map(addAge).map(addReviewer(username)),
+    pulls,
   };
 };
 

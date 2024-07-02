@@ -21,9 +21,11 @@ export const A: React.FC<{
   children: React.ReactNode;
   href: string;
   onClick?: () => void;
+  title?: string;
 }> = (props) => (
   <a
     {...props}
+    title={props.title}
     target="_blank"
     rel="noreferrer"
     className={
